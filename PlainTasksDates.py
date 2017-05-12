@@ -32,7 +32,7 @@ if ST3:
 
 
 def is_dayfirst(date_format):
-    return regex.search(r'(\d|\m)',date_format).group(1) == 'd'
+    return regex.search(r'(d|m)',date_format).group(1) == 'd'
 
 def is_yearfirst(date_format):
     return date_format.strip('( )').startswith(('%y', '%Y'))
@@ -42,7 +42,7 @@ def _convert_date(matchstr, now):
     match_obj = regex.search('''(?mxu)
         (?:\s*
         (?P<day>\d*(?!:))
-        (?P<sep>[-\.])?
+        (?P<sep>.)?
         (?P<month>\d*)
         (?P=sep)?
         (?P<year>\d*)
@@ -53,6 +53,7 @@ def _convert_date(matchstr, now):
          :
          (?P<minute>\d*)
         )?''', matchstr)
+    
     # Update delimiters from group<sep>?
 
     day  = int(match_obj.group('day') or 0)
