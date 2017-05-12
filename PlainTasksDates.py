@@ -41,11 +41,11 @@ def is_yearfirst(date_format):
 def _convert_date(matchstr, now):  # e.g. '23:' == hour, but '1 23:' == day=1, hour=23
     match_obj = regex.search('''(?mxu)
         (?:\s*
-        (?P<yearORmonthORday>\d*(?!:))
+        (?P<day>\d*(?!:))
         (?P<sep>[-\.])?
-        (?P<monthORday>\d*)
+        (?P<month>\d*)
         (?P=sep)?
-        (?P<day>\d*)
+        (?P<year>\d*)
         (?! \d*:))?
         \s*
         (?:
@@ -53,23 +53,19 @@ def _convert_date(matchstr, now):  # e.g. '23:' == hour, but '1 23:' == day=1, h
          :
          (?P<minute>\d*)
         )?''', matchstr)
-    year  = now.year
-    month = now.month
-    day   = int(match_obj.group('day') or 0)
-    # print(day)
-    if day:
-        year  = int(match_obj.group('yearORmonthORday'))
-        month = int(match_obj.group('monthORday'))
+
+    day  = int(match_obj.group('day') or 0)
+    year   = int(match_obj.group('year') or 0)
+    if year:
+        month = int(match_obj.group('month'))
     else:
-        day = int(match_obj.group('monthORday') or 0)
-        # print(day)
-        if day:
-            month = int(match_obj.group('yearORmonthORday'))
+        year  = now.year
+        month = int(match_obj.group('month') or 0)
+        if month:
             if month < now.month:
                 year += 1
         else:
-            day = int(match_obj.group('yearORmonthORday') or 0)
-            # print(day)
+            month = now.month
             if 0 < day <= now.day:
                 # expect next month
                 month += 1
@@ -193,10 +189,10 @@ def parse_date(date_string, date_format='(%y-%m-%d %H:%M)', yearfirst=True, defa
             # e.g. @due(1) is always first day of next month,
             # but dateutil consider it 1st day of current month
             raise Exception("Special case of short date: less than 2 numbers")
-        if items < 3 and any(s in date_string for s in '-.'):
-            # e.g. @due(2-1) is always Fabruary 1st of next year,
-            # but dateutil consider it this year
-            raise Exception("Special case of short date: less than 3 numbers")
+        # if items < 3 and any(s in date_string for s in '-.'):
+        #     # e.g. @due(2-1) is always Fabruary 1st of next year,
+        #     # but dateutil consider it this year
+        #     raise Exception("Special case of short date: less than 3 numbers")
         # dayfirst = self.view.settings().get('day_first', True)
         dayfirst = True
         # print(str(dayfirst))
@@ -208,7 +204,7 @@ def parse_date(date_string, date_format='(%y-%m-%d %H:%M)', yearfirst=True, defa
         if NT and all((date.year < 1900, '%y' in date_format)):
             return None, ('format %y requires year >= 1900 on Windows', date.year, date.month, date.day, date.hour, date.minute)
     except Exception as e:
-        print(e)
+        # print(e)
         date, error = convert_date(bare_date_string, default)
     else:
         error = None
