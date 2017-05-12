@@ -2,6 +2,7 @@
 import sublime, sublime_plugin
 import json
 import regex
+import re
 import locale
 import calendar
 import itertools
@@ -12,8 +13,8 @@ NT = sublime.platform() == 'windows'
 ST3 = int(sublime.version()) >= 3000
 if ST3:
     from .APlainTasksCommon import PlainTasksBase, PlainTasksEnabled, PlainTasksFold
-    MARK_SOON = sublime.DRAW_NO_FILL
-    MARK_INVALID = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_SQUIGGLY_UNDERLINE
+    MARK_SOON = 0 # sublime.DRAW_NO_FILL
+    MARK_INVALID = sublime.DRAW_SQUIGGLY_UNDERLINE # sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | 
 else:
     from APlainTasksCommon import PlainTasksBase, PlainTasksEnabled, PlainTasksFold
     MARK_SOON = MARK_INVALID = 0
@@ -475,7 +476,8 @@ class PlainTasksPreviewShortDate(PlainTasksViewEventListener):
 
         rgn = self.view.extract_scope(s.a)
         text = self.view.substr(rgn)
-        match = regex.match(r'@due(\((?>[^()]|(?R))*\))[\s$]*', text)
+        match = re.match(r'@due\(([^@\n]*)\)[\s$]*', text)
+        # match = regex.match(r'@due(\((?>[^()]|(?R))*\))[\s$]*', text)
         # print(s, rgn, text)
 
         if not match:
@@ -484,6 +486,7 @@ class PlainTasksPreviewShortDate(PlainTasksViewEventListener):
         preview_offset = self.view.settings().get('due_preview_offset', 0)
         remain_format = self.view.settings().get('due_remain_format', '{time} remaining')
         overdue_format = self.view.settings().get('due_overdue_format', '{time} overdue')
+
 
         date_format = self.view.settings().get('date_format', '(%y-%m-%d %H:%M)')
         start = rgn.a + 5  # within parenthesis
