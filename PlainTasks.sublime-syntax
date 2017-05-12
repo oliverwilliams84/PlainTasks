@@ -36,7 +36,7 @@ contexts:
         - include: italic
         - include: bold
         - include: url
-    - match: '^\s*(-|❍|❑|■|□|☐|▪|▫|–|—|≡|→|›|\[\s\])(?=(\s+(?:[^\@\n]|(?<![ \t])\@)*)(?!([^\n]*)?(\@done|\@cancelled)[\s\(]))'
+    - match: '^\s*(-|❍|❑|■|□|☐|▪|▫|–|—|≡|→|›|\[\s\])(?=(\s+(?:[^\@\n]|(?<![ \t])\@)*)(?!([^\n]*)?(\@done|\@cancelled)[\s\(]*))'
       captures:
         1: punctuation.definition.bullet.pending.todo
       push:
@@ -87,7 +87,7 @@ contexts:
     - match: (?<=\s)\@low|✭low
       scope: string.other.tag.todo.low
   tag:
-    - match: '(?<=\s)\@(?!(high|today|critical|low|completed|done)[\s\(])[\w\d\.\(\)\-!? :\+]+[ \t]*'
+    - match: '(?<=\s)\@(?!(high|today|critical|low|completed|done)[\s\(])\w+(\((?>[^()]|(\g<2>))*+\))*+[ \t]*'
       scope: meta.tag.todo
   today:
     - match: (?<=\s)\@today|✭ᴛᴏᴅᴀʏ

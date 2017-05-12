@@ -1,7 +1,6 @@
 # coding: utf-8
 import sublime, sublime_plugin
 import json
-import re
 import regex
 import locale
 import calendar
@@ -32,20 +31,22 @@ if ST3:
     locale.setlocale(locale.LC_ALL, '')
 
 
+# def is_dayfirst(date_format):
+
+
 def is_yearfirst(date_format):
     return date_format.strip('( )').startswith(('%y', '%Y'))
 
 
-def _convert_date(matchstr, now):
-    match_obj = re.search(r'''(?mxu)
+def _convert_date(matchstr, now):  # e.g. '23:' == hour, but '1 23:' == day=1, hour=23
+    match_obj = regex.search('''(?mxu)
         (?:\s*
-         (?P<yearORmonthORday>\d*(?!:))
-         (?P<sep>[-\.])?
-         (?P<monthORday>\d*)
-         (?P=sep)?
-         (?P<day>\d*)
-         (?! \d*:)(?# e.g. '23:' == hour, but '1 23:' == day=1, hour=23)
-        )?
+        (?P<yearORmonthORday>\d*(?!:))
+        (?P<sep>[-\.])?
+        (?P<monthORday>\d*)
+        (?P=sep)?
+        (?P<day>\d*)
+        (?! \d*:))?
         \s*
         (?:
          (?P<hour>\d*)
@@ -104,7 +105,7 @@ def increase_date(view, region, text, now, date_format):
     if '++' in text:
         line = view.line(region)
         line_content = view.substr(line)
-        created = re.search(r'(?mxu)@created\(([\d\w,\.:\-\/ @]*)\)', line_content)
+        created = regex.search(r'(?mxu)@created\(([\d\w,\.:\-\/ @]*)\)', line_content)
         if created:
             created_date, error = parse_date(created.group(1),
                                              date_format=date_format,
@@ -117,7 +118,7 @@ def increase_date(view, region, text, now, date_format):
             else:
                 now = created_date
 
-    match_obj = re.search(r'''(?mxu)
+    match_obj = regex.search('''(?mxu)
         \s*\+\+?\s*
         (?:
          (?P<number>\d*(?![:.]))\s*
@@ -157,7 +158,6 @@ def expand_short_date(view, start, end, now, date_format):
         end += 1
     region = sublime.Region(start + 1, end)
     text = view.substr(region)
-    # print(text)
 
     if '+' in text:
         date, error = increase_date(view, region, text, now, date_format)
@@ -184,8 +184,10 @@ def parse_date(date_string, date_format='(%y-%m-%d %H:%M)', yearfirst=True, defa
     except ValueError as e:
         # print(e)
         pass
+    
     bare_date_string = date_string.strip('( )')
     items = len(bare_date_string.split('-' if '-' in bare_date_string else '.'))
+
     try:
         if items < 2 and len(bare_date_string) < 3:
             # e.g. @due(1) is always first day of next month,
@@ -195,13 +197,18 @@ def parse_date(date_string, date_format='(%y-%m-%d %H:%M)', yearfirst=True, defa
             # e.g. @due(2-1) is always Fabruary 1st of next year,
             # but dateutil consider it this year
             raise Exception("Special case of short date: less than 3 numbers")
+        # dayfirst = self.view.settings().get('day_first', True)
+        dayfirst = True
+        # print(str(dayfirst))
         date = dateutil_parser.parse(bare_date_string,
                                      yearfirst=yearfirst,
-                                     default=default)
+                                     default=default,
+                                     dayfirst = dayfirst)
+
         if NT and all((date.year < 1900, '%y' in date_format)):
             return None, ('format %y requires year >= 1900 on Windows', date.year, date.month, date.day, date.hour, date.minute)
     except Exception as e:
-        # print(e)
+        print(e)
         date, error = convert_date(bare_date_string, default)
     else:
         error = None
@@ -231,7 +238,7 @@ class PlainTasksToggleHighlightPastDue(PlainTasksEnabled):
         if not highlight_on:
             return
 
-        pattern = r'@due(\((?>[^()]|(?R))*\))'
+        pattern = r'@due(\((?>[^()\/]|(?1))*+\))++'
         dates_strings = []
         dates_regions = self.view.find_all(pattern, 0, '\\1', dates_strings)
         if not dates_regions:
@@ -280,6 +287,7 @@ class PlainTasksToggleHighlightPastDue(PlainTasksEnabled):
                 # print(error)
                 misformatted.append(region)
             else:
+                # print(str(now) + "  " + str(date))
                 if now >= date:
                     past_due.append(region)
                     phantoms.append((region.a, '-' + format_delta(self.view, default - date)))
@@ -400,12 +408,12 @@ class PlainTasksReCalculateTimeForTasks(PlainTasksEnabled):
 
             line_contents = self.view.substr(line)
 
-            done_match = re.match(done, line_contents, re.U)
+            done_match = regex.match(done, line_contents, regex.U)
             now = done_match.group(2) if done_match else default_now
 
-            started_matches = re.findall(started, line_contents, re.U)
-            toggle_matches = re.findall(toggle, line_contents, re.U)
-            calc_matches = re.findall(calculated, line_contents, re.U)
+            started_matches = regex.findall(started, line_contents, regex.U)
+            toggle_matches = regex.findall(toggle, line_contents, regex.U)
+            calc_matches = regex.findall(calculated, line_contents, regex.U)
 
             for match in calc_matches:
                 line_contents = line_contents.replace(match, '')
@@ -483,7 +491,6 @@ class PlainTasksPreviewShortDate(PlainTasksViewEventListener):
         remain_format = self.view.settings().get('due_remain_format', '{time} remaining')
         overdue_format = self.view.settings().get('due_overdue_format', '{time} overdue')
 
-
         date_format = self.view.settings().get('date_format', '(%y-%m-%d %H:%M)')
         start = rgn.a + 5  # within parenthesis
         now = datetime.now().replace(second=0, microsecond=0)
@@ -551,7 +558,7 @@ class PlainTasksCalendar(sublime_plugin.TextCommand):
         start = end = point
         tag_pattern = r'(?<=\s)(\@[^\(\) ,\.]+)([\w\d\.\(\)\-!? :\+]*)'
         line = self.view.line(point)
-        matches = re.finditer(tag_pattern, self.view.substr(line))
+        matches = regex.finditer(tag_pattern, self.view.substr(line))
         for match in matches:
             m_start = line.a + match.start(1)
             m_end   = line.a + match.end(2)
