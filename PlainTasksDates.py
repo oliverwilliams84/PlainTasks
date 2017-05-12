@@ -31,14 +31,14 @@ if ST3:
     locale.setlocale(locale.LC_ALL, '')
 
 
-# def is_dayfirst(date_format):
-
+def is_dayfirst(date_format):
+    return regex.search(r'(\d|\m)',date_format).group(1) == 'd'
 
 def is_yearfirst(date_format):
     return date_format.strip('( )').startswith(('%y', '%Y'))
 
 
-def _convert_date(matchstr, now):  # e.g. '23:' == hour, but '1 23:' == day=1, hour=23
+def _convert_date(matchstr, now): 
     match_obj = regex.search('''(?mxu)
         (?:\s*
         (?P<day>\d*(?!:))
@@ -53,28 +53,30 @@ def _convert_date(matchstr, now):  # e.g. '23:' == hour, but '1 23:' == day=1, h
          :
          (?P<minute>\d*)
         )?''', matchstr)
+    # Update delimiters from group<sep>?
 
     day  = int(match_obj.group('day') or 0)
     year   = int(match_obj.group('year') or 0)
+    month = int(match_obj.group('month') or 0)
     if year:
         month = int(match_obj.group('month'))
     else:
         year  = now.year
-        month = int(match_obj.group('month') or 0)
-        if month:
-            if month < now.month:
+
+    if month:
+        if month < now.month:
+            year += 1
+    else:
+        month = now.month
+        if 0 < day <= now.day:
+            # expect next month
+            month += 1
+            if month == 13:
                 year += 1
-        else:
-            month = now.month
-            if 0 < day <= now.day:
-                # expect next month
-                month += 1
-                if month == 13:
-                    year += 1
-                    month = 1
-            elif not day:  # @due(0) == today
-                day = now.day
-            # else would be day>now, i.e. future day in current month
+                month = 1
+    if not (0 < day <= 31):  # @due(0) == today
+        day = now.day
+        # else would be day>now, i.e. future day in current month
     hour   = match_obj.group('hour')   or now.hour
     minute = match_obj.group('minute') or now.minute
     hour, minute = int(hour), int(minute)
@@ -105,7 +107,6 @@ def increase_date(view, region, text, now, date_format):
         if created:
             created_date, error = parse_date(created.group(1),
                                              date_format=date_format,
-                                             yearfirst=is_yearfirst(date_format),
                                              default=now)
             if error:
                 ln = (view.rowcol(line.a)[0] + 1)
@@ -158,20 +159,18 @@ def expand_short_date(view, start, end, now, date_format):
     if '+' in text:
         date, error = increase_date(view, region, text, now, date_format)
     else:
-        date, error = parse_date(text, date_format, yearfirst=is_yearfirst(date_format), default=now)
+        date, error = parse_date(text, date_format, default=now)
 
     return date, error, sublime.Region(start, end + 1)
 
 
-def parse_date(date_string, date_format='(%y-%m-%d %H:%M)', yearfirst=True, default=None):
+def parse_date(date_string, date_format='(%y-%m-%d %H:%M)', default=None):
     '''
     Attempt to convert arbitrary string to datetime object
     date_string
         Unicode
     date_format
         Unicode
-    yearfirst
-        boolin
     default
         datetime object (now)
     '''
@@ -183,6 +182,8 @@ def parse_date(date_string, date_format='(%y-%m-%d %H:%M)', yearfirst=True, defa
     
     bare_date_string = date_string.strip('( )')
     items = len(bare_date_string.split('-' if '-' in bare_date_string else '.'))
+    yearfirst = is_yearfirst(date_format)
+    dayfirst = is_dayfirst(date_format)
 
     try:
         if items < 2 and len(bare_date_string) < 3:
@@ -194,8 +195,6 @@ def parse_date(date_string, date_format='(%y-%m-%d %H:%M)', yearfirst=True, defa
         #     # but dateutil consider it this year
         #     raise Exception("Special case of short date: less than 3 numbers")
         # dayfirst = self.view.settings().get('day_first', True)
-        dayfirst = True
-        # print(str(dayfirst))
         date = dateutil_parser.parse(bare_date_string,
                                      yearfirst=yearfirst,
                                      default=default,
@@ -277,7 +276,7 @@ class PlainTasksToggleHighlightPastDue(PlainTasksEnabled):
                 date, error = increase_date(self.view, region, text, default, date_format)
                 # print(date, date_format)
             else:
-                date, error = parse_date(text, date_format=date_format, yearfirst=yearfirst, default=default)
+                date, error = parse_date(text, date_format=date_format, default=default)
                 # print(date, date_format, yearfirst)
             if error:
                 # print(error)

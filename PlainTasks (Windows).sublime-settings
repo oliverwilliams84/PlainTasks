@@ -12,6 +12,10 @@
   "day_first": false,
 
   "bar_empty": "☐", // empty cell for progress-bar in status-bar, for more details see Custom Statistics in README
+  "delimiters": [
+    "-",
+    "."
+  ],
 
   "color_scheme": "Packages/PlainTasks/tasks.hidden-tmTheme",
     // other bundled schemes:
