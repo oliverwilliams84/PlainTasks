@@ -34,6 +34,7 @@ if ST3:
 def is_dayfirst(date_format):
     return regex.search(r'(d|m)',date_format).group(1) == 'd'
 
+
 def is_yearfirst(date_format):
     return date_format.strip('( )').startswith(('%y', '%Y'))
 
@@ -59,22 +60,19 @@ def _convert_date(matchstr, now):
     day  = int(match_obj.group('day') or 0)
     year   = int(match_obj.group('year') or 0)
     month = int(match_obj.group('month') or 0)
-    if year:
-        month = int(match_obj.group('month'))
-    else:
+    if not year:
         year  = now.year
-
-    if month:
-        if month < now.month:
-            year += 1
-    else:
-        month = now.month
-        if 0 < day <= now.day:
-            # expect next month
-            month += 1
-            if month == 13:
+        if month:
+            if month < now.month:
                 year += 1
-                month = 1
+        else:
+            month = now.month
+            if 0 < day <= now.day:
+                # expect next month
+                month += 1
+                if month >= 13:
+                    year += 1
+                    month = 1
     if not (0 < day <= 31):  # @due(0) == today
         day = now.day
         # else would be day>now, i.e. future day in current month
