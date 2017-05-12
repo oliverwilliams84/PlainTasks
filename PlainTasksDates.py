@@ -58,8 +58,8 @@ def _convert_date(matchstr, now):
     # Update delimiters from group<sep>?
 
     day  = int(match_obj.group('day') or 0)
-    year   = int(match_obj.group('year') or 0)
     month = int(match_obj.group('month') or 0)
+    year   = int(match_obj.group('year') or 0)
     if not year:
         year  = now.year
         if month:
