@@ -12,8 +12,8 @@ NT = sublime.platform() == 'windows'
 ST3 = int(sublime.version()) >= 3000
 if ST3:
     from .APlainTasksCommon import PlainTasksBase, PlainTasksEnabled, PlainTasksFold
-    MARK_SOON = sublime.DRAW_NO_FILL
-    MARK_INVALID = sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | sublime.DRAW_SQUIGGLY_UNDERLINE
+    MARK_SOON = 0 # sublime.DRAW_NO_FILL
+    MARK_INVALID = sublime.DRAW_SQUIGGLY_UNDERLINE # sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE | 
 else:
     from APlainTasksCommon import PlainTasksBase, PlainTasksEnabled, PlainTasksFold
     MARK_SOON = MARK_INVALID = 0
@@ -31,7 +31,8 @@ if ST3:
     locale.setlocale(locale.LC_ALL, '')
 
 
-# def is_dayfirst(date_format):
+def is_dayfirst(date_format):
+    return regex.search(r'(d|m)',date_format).group(1) == 'd'
 
 
 def is_yearfirst(date_format):
@@ -41,45 +42,40 @@ def is_yearfirst(date_format):
 def _convert_date(matchstr, now):
     match_obj = re.search(r'''(?mxu)
         (?:\s*
-         (?P<yearORmonthORday>\d*(?!:))
-         (?P<sep>[-\.])?
-         (?P<monthORday>\d*)
-         (?P=sep)?
-         (?P<day>\d*)
-         (?! \d*:)(?# e.g. '23:' == hour, but '1 23:' == day=1, hour=23)
-        )?
+        (?P<day>\d*(?!:))
+        (?P<sep>.)?
+        (?P<month>\d*)
+        (?P=sep)?
+        (?P<year>\d*)
+        (?! \d*:))?
         \s*
         (?:
          (?P<hour>\d*)
          :
          (?P<minute>\d*)
         )?''', matchstr)
-    year  = now.year
-    month = now.month
-    day   = int(match_obj.group('day') or 0)
-    # print(day)
-    if day:
-        year  = int(match_obj.group('yearORmonthORday'))
-        month = int(match_obj.group('monthORday'))
-    else:
-        day = int(match_obj.group('monthORday') or 0)
-        # print(day)
-        if day:
-            month = int(match_obj.group('yearORmonthORday'))
+    
+    # Update delimiters from group<sep>?
+
+    day  = int(match_obj.group('day') or 0)
+    month = int(match_obj.group('month') or 0)
+    year   = int(match_obj.group('year') or 0)
+    if not year:
+        year  = now.year
+        if month:
             if month < now.month:
                 year += 1
         else:
-            day = int(match_obj.group('yearORmonthORday') or 0)
-            # print(day)
+            month = now.month
             if 0 < day <= now.day:
                 # expect next month
                 month += 1
-                if month == 13:
+                if month >= 13:
                     year += 1
                     month = 1
-            elif not day:  # @due(0) == today
-                day = now.day
-            # else would be day>now, i.e. future day in current month
+    if not (0 < day <= 31):  # @due(0) == today
+        day = now.day
+        # else would be day>now, i.e. future day in current month
     hour   = match_obj.group('hour')   or now.hour
     minute = match_obj.group('minute') or now.minute
     hour, minute = int(hour), int(minute)
@@ -159,17 +155,16 @@ def expand_short_date(view, start, end, now, date_format):
         end += 1
     region = sublime.Region(start + 1, end)
     text = view.substr(region)
-    # print(text)
 
     if '+' in text:
         date, error = increase_date(view, region, text, now, date_format)
     else:
-        date, error = parse_date(text, date_format, yearfirst=is_yearfirst(date_format), default=now)
+        date, error = parse_date(text, date_format, default=now)
 
     return date, error, sublime.Region(start, end + 1)
 
 
-def parse_date(date_string, date_format='(%y-%m-%d %H:%M)', yearfirst=True, default=None):
+def parse_date(date_string, date_format='(%y-%m-%d %H:%M)', default=None):
     '''
     Attempt to convert arbitrary string to datetime object
     date_string
@@ -186,24 +181,31 @@ def parse_date(date_string, date_format='(%y-%m-%d %H:%M)', yearfirst=True, defa
     except ValueError as e:
         # print(e)
         pass
+    
     bare_date_string = date_string.strip('( )')
     items = len(bare_date_string.split('-' if '-' in bare_date_string else '.'))
+    yearfirst = is_yearfirst(date_format)
+    dayfirst = is_dayfirst(date_format)
+
     try:
         if items < 2 and len(bare_date_string) < 3:
             # e.g. @due(1) is always first day of next month,
             # but dateutil consider it 1st day of current month
             raise Exception("Special case of short date: less than 2 numbers")
-        if items < 3 and any(s in date_string for s in '-.'):
-            # e.g. @due(2-1) is always Fabruary 1st of next year,
-            # but dateutil consider it this year
-            raise Exception("Special case of short date: less than 3 numbers")
+        # if items < 3 and any(s in date_string for s in '-.'):
+        #     # e.g. @due(2-1) is always Fabruary 1st of next year,
+        #     # but dateutil consider it this year
+        #     raise Exception("Special case of short date: less than 3 numbers")
+        # dayfirst = self.view.settings().get('day_first', True)
         date = dateutil_parser.parse(bare_date_string,
                                      yearfirst=yearfirst,
-                                     default=default)
+                                     default=default,
+                                     dayfirst = dayfirst)
+
         if NT and all((date.year < 1900, '%y' in date_format)):
             return None, ('format %y requires year >= 1900 on Windows', date.year, date.month, date.day, date.hour, date.minute)
     except Exception as e:
-        # print(e)
+        print(e)
         date, error = convert_date(bare_date_string, default)
     else:
         error = None
@@ -276,12 +278,13 @@ class PlainTasksToggleHighlightPastDue(PlainTasksEnabled):
                 date, error = increase_date(self.view, region, text, default, date_format)
                 # print(date, date_format)
             else:
-                date, error = parse_date(text, date_format=date_format, yearfirst=yearfirst, default=default)
+                date, error = parse_date(text, date_format=date_format, default=default)
                 # print(date, date_format, yearfirst)
             if error:
                 # print(error)
                 misformatted.append(region)
             else:
+                # print(str(now) + "  " + str(date))
                 if now >= date:
                     past_due.append(region)
                     phantoms.append((region.a, '-' + format_delta(self.view, default - date)))
@@ -551,19 +554,19 @@ class PlainTasksCalendar(sublime_plugin.TextCommand):
             tag under cursor (i.e. point)
         '''
         start = end = point
-        tag = ''
-        if 'tag.todo' in self.view.scope_name(point):
-            reg = self.view.extract_scope(point)
-            text = self.view.substr(reg)
-            match = re.search(r'(\@\w*)(\(.*\)|)', text)
-            start, end = reg.b, reg.b
-            if match:
-                if len(match.group(2)) > 0:
-                    start = reg.a + match.start(2)
-                    end = reg.a + match.end(2)
-
-                tag = match.group(1)
-
+        tag_pattern = r'(?<=\s)(\@[^\(\) ,\.]+)([\w\d\.\(\)\-!? :\+]*)'
+        line = self.view.line(point)
+        matches = regex.finditer(tag_pattern, self.view.substr(line))
+        for match in matches:
+            m_start = line.a + match.start(1)
+            m_end   = line.a + match.end(2)
+            if m_start <= point <= m_end:
+                start = line.a + match.start(2)
+                end   = m_end
+                break
+        else:
+            match = None
+        tag = match.group(0) if match else ''
         return sublime.Region(start, end), tag
 
     def generate_calendar(self, date=None):
