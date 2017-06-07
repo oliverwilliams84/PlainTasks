@@ -5,21 +5,24 @@ Dev:
  ☐ Accept date times in any format
    define date delimiters or attempt to match any?
  ☐ Remove calender context menu from every fucking file
- ☐ HTML output wonky with current changes (due dates not colored or ?)
  ☐ More rigorous testing, especially syntax
- ☐ Use sublime craft twig to output html?
+ ☐ Use sublime craft twig to output html? @high
+   HTML output wonky with current changes (due dates not colored or ?)
+ ☐ Fix sublime extract_scope code by repeatedly checking left and right until scope doesn't match. Will ignore phantoms and get everything
 
  Tags:
-   ☐ randomise tag color, attempt to pick differing colors
-   ☐ tag color picker
+   Colors:
+     ☐ randomise tag colour, attempt to pick differing colors
+     ☐ tag colour picker to override whatever random shit turns up
+       expand this to have pattern matching for specific tags (user created) all of the same colour
    ☐ tags to RHS of line hotkey/toggle
  Projects:
-   ☐ special project tags ( +???)
+   ☐ special project tags (+ or @p prefix so @p1 is project 1)
    Full rework:
      ☐ Project ID ordering
        Automatically change on reorder?
      ☐ Link sections together so if you move up a parent project all sub-items move too
-       Lots of backend code needed? maybe? 
+       Lots of back-end code needed? maybe? 
 
 
 
