@@ -11,12 +11,8 @@
   "show_remain_due": false, // in Sublime 3, show remain or overdue time under due tags
 
   "bar_empty": "☐", // empty cell for progress-bar in status-bar, for more details see Custom Statistics in README
-  "delimiters": [
-    "-",
-    "."
-  ],
 
-  "color_scheme": "Packages/PlainTasks/tasks.hidden-tmTheme",
+  "color_scheme": "Packages/PlainTasks/tasks-monokai.hidden-tmTheme",
     // other bundled schemes:
     //   Packages/PlainTasks/tasks-dark.hidden-tmTheme
     //   Packages/PlainTasks/tasks-eighties-colored.hidden-tmTheme

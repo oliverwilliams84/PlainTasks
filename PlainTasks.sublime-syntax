@@ -7,8 +7,8 @@ file_extensions:
   - todolist.txt
 scope: text.todo
 contexts:
-  main:
-    - match: '^\s*(\w+.*?:\s*?(\@[^\s]+(\(.*?\))?\s*?)*$\n?)'
+  main:  
+    - match: '^\s*(\w+.*?:\s*?(\@[^\s]+(\(.*?\))?\s*?)*$\n?)' # Todo: push/pop
       scope: keyword.control.header.todo
     - match: '^\s*(?:(\+|✓|✔|☑|√|\[x\])(\s+(?:[^\@\n]|(?<!\s)\@|\@(?=\s))*)([^\n]*))|^\s*(?:(-)(\s+(?:[^\@]|(?<!\s)\@|\@(?=\s))*)(.*\@done(?=\s|\(|$)[^\n]*))'
       scope: meta.item.todo.completed
