@@ -1,4 +1,4 @@
-Dev:
+Dev: @tag @tag2
  ☐ Heading matching: https://regex101.com/r/KKRv6o/9/
     use push/pop syntax with include rather than recursive regex (can't reference the recursed group) https://www.sublimetext.com/docs/3/syntax.html
  ☐ General scope matching tidying
@@ -10,21 +10,19 @@ Dev:
    HTML output wonky with current changes (due dates not colored or ?)
  ☐ Fix sublime extract_scope code by repeatedly checking left and right until scope doesn't match. Will ignore phantoms and get everything
 
- Tags:
-   Colors:
+Tags: @tag @tag2  @aaaaacunt()
+  Colors: @tag
      ☐ randomise tag colour, attempt to pick differing colors
      ☐ tag colour picker to override whatever random shit turns up
        expand this to have pattern matching for specific tags (user created) all of the same colour
    ☐ tags to RHS of line hotkey/toggle
- Projects:
+  Projects:
    ☐ special project tags (+ or @p prefix so @p1 is project 1)
    Full rework:
      ☐ Project ID ordering
        Automatically change on reorder?
      ☐ Link sections together so if you move up a parent project all sub-items move too
        Lots of back-end code needed? maybe? 
-
-
 
 ---- ✄ ------------------------ ---- ✄ -----------------------
 
